@@ -1,0 +1,46 @@
+
+
+
+
+
+
+
+// <!-- Charting library -->
+// <script src="https://unpkg.com/chart.js@2.9.3/dist/Chart.min.js"></script>
+// <!-- Chartisan -->
+// <script src="https://unpkg.com/@chartisan/chartjs@^2.1.0/dist/chartisan_chartjs.umd.js"></script>
+// <script>
+//
+//     const chart = new Chartisan({
+//         el: '#chart',
+//         url: "@chart('field_force_chart')",
+//         hooks: new ChartisanHooks()
+//             .colors(['#5cb85c', '#d9534f'])
+//             .responsive()
+//             .beginAtZero()
+//             .legend({ position: 'bottom' })
+//             .title('Area Wise Total SPO Inside SFA VS Outside SFA')
+//             .datasets([{
+//                 type: 'bar', fill: true,
+//             }, 'bar']),
+//
+//
+//     });
+//
+//     const chartAreaWise = new Chartisan({
+//         el: '#chartAreaWise',
+//         url: "@chart('field_force_chart_area_wise')",
+//         hooks: new ChartisanHooks()
+//             .colors(['#5cb85c', '#d9534f'])
+//             .responsive()
+//             .beginAtZero()
+//             .legend({ position: 'bottom' })
+//             .title('Area Wise Total SPO Inside SFA VS Outside SFA')
+//             .datasets([{
+//                 type: 'bar', fill: true,
+//             }, 'bar']),
+//
+//
+//     });
+//
+// </script>
