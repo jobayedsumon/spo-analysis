@@ -12,27 +12,6 @@ use function MongoDB\BSON\toJSON;
 class OrderDeliveryController extends Controller
 {
     //
-    public function order_deliveries_count()
-    {
-        $field_forces = FieldForce::all();
-
-        $can_order_delivery = [];
-        $can_not_order_delivery = [];
-
-        foreach ($field_forces as $field_force) {
-
-            if (!$field_force->order_deliveries->isEmpty()) {
-                array_push($can_order_delivery, $field_force);
-            } else {
-                array_push($can_not_order_delivery, $field_force);
-            }
-        }
-
-        return view('order-deliveries-count',
-            compact('can_order_delivery', 'can_not_order_delivery'
-            ));
-
-    }
 
     public function region_wise_field_forces()
     {
@@ -41,7 +20,7 @@ class OrderDeliveryController extends Controller
             ->select('RSMArea')
             ->selectRaw('count(*) as total')
             ->selectRaw("count(case when isCapable = 1 then 1 end) as capable")
-            ->selectRaw("count(case when isCapable != 1 then 1 end) as incapable")
+            ->selectRaw("count(case when isCapable = 0 then 1 end) as incapable")
             ->groupBy('RSMArea')
             ->get();
 
@@ -55,7 +34,7 @@ class OrderDeliveryController extends Controller
             ->select('ASMArea')
             ->selectRaw('count(*) as total')
             ->selectRaw("count(case when isCapable = 1 then 1 end) as capable")
-            ->selectRaw("count(case when isCapable != 1 then 1 end) as incapable")
+            ->selectRaw("count(case when isCapable = 0 then 1 end) as incapable")
             ->groupBy('ASMArea')
             ->get();
 
@@ -211,14 +190,13 @@ class OrderDeliveryController extends Controller
 
     public function synchronize_data()
     {
+        $geotagPercent = 1;
+        $orderPercent = 20;
+        $deliveryConfirmPercent = 20;
 
         $occupied_field_forces = FieldForce::where('Name', '!=', 'VACANT')->get();
 
-        $total_capable_spo = 0;
-        $total_incapable_spo = 0;
-
         foreach ($occupied_field_forces as $field_force) {
-
             $total_order_by_spo = 0;
             $total_delivery_by_spo = 0;
 
@@ -227,109 +205,67 @@ class OrderDeliveryController extends Controller
                 $totalRetailer = $field_force->geotags()->sum('TotalRetailer');
                 $totalGeoTag = $field_force->geotags()->sum('TotalGeoTag');
 
-
-                if ($totalGeoTag >= floor(($totalRetailer * 1) / 100)) {
-
-                    if ($field_force->retail_visit) {
-
-                        $total_retail = $field_force->retail_visit->TotalCustomer;
-                        $total_order = $field_force->retail_visit->TotalOrder;
-                        $total_visit = $field_force->retail_visit->TotalVisit;
-                        $total_visit_order = $total_order + $total_visit;
-
-                        if ($total_visit_order >= floor($total_retail / 2)) {
-
-                            if ($field_force->order_deliveries) {
-
-                                $order_deliveries = $field_force->order_deliveries;
-
-                                foreach ($order_deliveries as $order_delivery) {
-
-
-                                    if ($order_delivery->OrderNo && $order_delivery->Orderdate) {
-
-                                        $total_order_by_spo++;
-
-                                    }
-
-                                    if ($order_delivery->InvoiceNo && $order_delivery->InvoiceDate) {
-
-                                        $total_delivery_by_spo++;
-                                    }
-                                }
-
-                                if ($total_delivery_by_spo >= floor(($total_order_by_spo * 20) / 100)) {
-
-                                    $field_force->update([
-                                        'isCapable' => true
-                                    ]);
-
-                                    $total_capable_spo++;
-
-                                }
-
-                                else {
-
-                                    $field_force->update([
-                                        'isCapable' => false
-                                    ]);
-
-                                    $total_incapable_spo++;
-                                }
-                            }
-
-                            else {
-
-                                $field_force->update([
-                                    'isCapable' => false
-                                ]);
-
-                                $total_incapable_spo++;
-                            }
-                        }
-
-                        else {
-
-                            $field_force->update([
-                                'isCapable' => false
-                            ]);
-
-                            $total_incapable_spo++;
-                        }
-
-                    }
-
-                    else {
-
-                        $field_force->update([
-                            'isCapable' => false
-                        ]);
-
-                        $total_incapable_spo++;
-                    }
-
-                }
-
-                else {
-
+                if ($totalGeoTag >= floor(($totalRetailer * $geotagPercent) / 100)) {
                     $field_force->update([
-                        'isCapable' => false
+                        'canGeotag' => true
                     ]);
 
-                    $total_incapable_spo++;
+                    if ($field_force->order_deliveries) {
+                        $order_deliveries = $field_force->order_deliveries;
+
+                        foreach ($order_deliveries as $order_delivery) {
+                            if (!empty($order_delivery->OrderNo) && !empty($order_delivery->OrderDate)) {
+                                $total_order_by_spo++;
+                            }
+                            if (!empty($order_delivery->InvoiceNo) && !empty($order_delivery->InvoiceDate)) {
+                                $total_delivery_by_spo++;
+                            }
+                        }
+
+                        if ($total_order_by_spo >= floor(($totalGeoTag * $orderPercent) / 100)) {
+                            $field_force->update([
+                                'canOrder' => true
+                            ]);
+                            if ($total_delivery_by_spo >= floor(($total_order_by_spo * $deliveryConfirmPercent) / 100)) {
+                                $field_force->update([
+                                    'isCapable' => true,
+                                    'canConfirmDelivery' => true,
+                                ]);
+                            }
+                            else {
+                                $field_force->update([
+                                    'isCapable' => false,
+                                    'canConfirmDelivery' => false
+                                ]);
+                            }
+                        }
+                        else {
+                            $field_force->update([
+                                'isCapable' => false,
+                                'canOrder' => false
+                            ]);
+                        }
+                    }
+                    else {
+                        $field_force->update([
+                            'isCapable' => false,
+                            'canOrder' => false
+                        ]);
+                    }
                 }
-
+                else {
+                    $field_force->update([
+                        'isCapable' => false,
+                        'canGeotag' => false
+                    ]);
+                }
             }
-
             else {
-
                 $field_force->update([
-                    'isCapable' => false
+                    'isCapable' => false,
+                    'canGeotag' => false
                 ]);
-
-                $total_incapable_spo++;
             }
-
         }
 
         return redirect(route('dashboard'));
