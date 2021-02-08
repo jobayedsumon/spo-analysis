@@ -4,6 +4,7 @@ use App\Models\FieldForce;
 use App\Models\OrderDelivery;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use TCG\Voyager\Facades\Voyager;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,17 +36,24 @@ Route::get('/data-clean', function () {
 });
 
 
+
+
 Route::group(['prefix' => 'admin'], function () {
 
     Voyager::routes();
 
+    Route::get('dashboard', '\App\Http\Controllers\OrderDeliveryController@dashboard')
+        ->name('dashboard');
 
-
-    Route::post('synchronize-data', '\App\Http\Controllers\OrderDeliveryController@synchronize_data')->name('synchronize-data');
+    Route::post('synchronize-data', '\App\Http\Controllers\OrderDeliveryController@synchronize_data')
+        ->name('synchronize-data');
 
 });
 
-Route::get('dashboard', '\App\Http\Controllers\OrderDeliveryController@dashboard')->name('dashboard');
+Route::get('field-forces/region-wise-field-forces', '\App\Http\Controllers\OrderDeliveryController@region_wise_field_forces')
+    ->name('region-wise-field-forces');
+Route::get('field-forces/area-wise-field-forces', '\App\Http\Controllers\OrderDeliveryController@area_wise_field_forces')
+    ->name('area-wise-field-forces');
 
-Route::get('/field-forces/region-wise-field-forces', '\App\Http\Controllers\OrderDeliveryController@region_wise_field_forces')->name('region-wise-field-forces');
-Route::get('/field-forces/area-wise-field-forces', '\App\Http\Controllers\OrderDeliveryController@area_wise_field_forces')->name('area-wise-field-forces');
+
+

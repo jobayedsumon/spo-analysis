@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use TCG\Voyager\Facades\Voyager;
 use function MongoDB\BSON\toJSON;
 
 class OrderDeliveryController extends Controller
@@ -21,6 +22,9 @@ class OrderDeliveryController extends Controller
             ->selectRaw('count(*) as total')
             ->selectRaw("count(case when isCapable = 1 then 1 end) as capable")
             ->selectRaw("count(case when isCapable = 0 then 1 end) as incapable")
+            ->selectRaw("count(case when canGeotag = 1 then 1 end) as can_geotag")
+            ->selectRaw("count(case when canOrderVisit = 1 then 1 end) as can_order_visit")
+            ->selectRaw("count(case when canConfirmDelivery = 1 then 1 end) as can_confirm_delivery")
             ->groupBy('RSMArea')
             ->get();
 
@@ -35,6 +39,9 @@ class OrderDeliveryController extends Controller
             ->selectRaw('count(*) as total')
             ->selectRaw("count(case when isCapable = 1 then 1 end) as capable")
             ->selectRaw("count(case when isCapable = 0 then 1 end) as incapable")
+            ->selectRaw("count(case when canGeotag = 1 then 1 end) as can_geotag")
+            ->selectRaw("count(case when canOrderVisit = 1 then 1 end) as can_order_visit")
+            ->selectRaw("count(case when canConfirmDelivery = 1 then 1 end) as can_confirm_delivery")
             ->groupBy('ASMArea')
             ->get();
 
@@ -43,52 +50,20 @@ class OrderDeliveryController extends Controller
 
     public function dashboard()
     {
-
-
         $total_field_forces_count = FieldForce::all()->count();
         $occupied_field_forces_count = FieldForce::where('Name', '!=', 'VACANT')->count();
         $vacant_field_forces_count = $total_field_forces_count - $occupied_field_forces_count;
 
-        $occupied_percent = ($occupied_field_forces_count * 100) / $total_field_forces_count;
-        $vacant_percent = ($vacant_field_forces_count * 100) / $total_field_forces_count;
-
+        $occupied_percent = ceil(($occupied_field_forces_count * 100) / $total_field_forces_count);
+        $vacant_percent = ceil(($vacant_field_forces_count * 100) / $total_field_forces_count);
 
         $capable = FieldForce::where('isCapable', true)->count();
         $incapable = FieldForce::where('isCapable', false)->count();
 
+        $capable_percent = ceil(($capable * 100) / $occupied_field_forces_count);
+        $incapable_percent = ceil(($incapable * 100) / $occupied_field_forces_count);
 
-//        $obj = [];
-//        foreach ($region_wise_capable as $data) {
-//            $obj[] = [
-//              'label' => $data ->RSMArea,
-//              'value' => $data ->total_capable,
-//            ];
-//        }
-//
-//        $obj = json_encode($obj);
-//        $doughnutData = json_encode('{
-//  "chart": {
-//    "caption": "Android Distribution for our app",
-//    "subcaption": "For all users in 2017",
-//    "showpercentvalues": "1",
-//    "defaultcenterlabel": "Android Distribution",
-//    "aligncaptionwithcanvas": "0",
-//    "captionpadding": "0",
-//    "decimals": "1",
-//    "plottooltext": "<b>$percentValue</b> of our Android users are on <b>$label</b>",
-//    "centerlabel": "# Users: $value",
-//    "theme": "fusion"
-//  },
-//  "data": "$obj"
-//}');
-
-
-
-        $capable_percent = ($capable * 100) / $occupied_field_forces_count;
-        $incapable_percent = ($incapable * 100) / $occupied_field_forces_count;
-
-        $date = '6th February, 2021';
-
+        $date = '7th February, 2021';
 
         $gaugeData = "{
                                 \"chart\": {
@@ -178,11 +153,13 @@ class OrderDeliveryController extends Controller
             ->orderBy('capable')
             ->get();
 
-
-
-
-
-
+        $data['spoEvaluation'] = DB::table('field_forces')
+            ->where('Name', '!=', 'VACANT')
+            ->selectRaw('count(*) as total')
+            ->selectRaw("count(case when canGeotag = 1 then 1 end) as can_geotag")
+            ->selectRaw("count(case when canOrderVisit = 1 then 1 end) as can_order_visit")
+            ->selectRaw("count(case when canConfirmDelivery = 1 then 1 end) as can_confirm_delivery")
+            ->first();
 
         return view('voyager::index', compact('gaugeData', 'gaugeData2', 'data'));
     }
@@ -190,9 +167,9 @@ class OrderDeliveryController extends Controller
 
     public function synchronize_data()
     {
-        $geotagPercent = 1;
-        $orderPercent = 20;
-        $deliveryConfirmPercent = 20;
+        $geotagPercent = Voyager::setting('admin.geo-tag-percent');
+        $orderVisitPercent = Voyager::setting('admin.order-visit-percent');
+        $deliveryConfirmPercent = Voyager::setting('admin.delivery-confirm-percent');
 
         $occupied_field_forces = FieldForce::where('Name', '!=', 'VACANT')->get();
 
@@ -207,63 +184,87 @@ class OrderDeliveryController extends Controller
 
                 if ($totalGeoTag >= floor(($totalRetailer * $geotagPercent) / 100)) {
                     $field_force->update([
-                        'canGeotag' => true
+                        'canGeotag' => true,
+                        'isCapable' => false,
+                        'canOrderVisit' => false,
+                        'canConfirmDelivery' => false
                     ]);
 
-                    if ($field_force->order_deliveries) {
-                        $order_deliveries = $field_force->order_deliveries;
+                    if ($field_force->retail_visits) {
 
-                        foreach ($order_deliveries as $order_delivery) {
-                            if (!empty($order_delivery->OrderNo) && !empty($order_delivery->OrderDate)) {
-                                $total_order_by_spo++;
-                            }
-                            if (!empty($order_delivery->InvoiceNo) && !empty($order_delivery->InvoiceDate)) {
-                                $total_delivery_by_spo++;
-                            }
-                        }
+                        $totalOrderVisit = $field_force->retail_visits()->sum('TotalVisit');
 
-                        if ($total_order_by_spo >= floor(($totalGeoTag * $orderPercent) / 100)) {
+                        if ($totalOrderVisit >= floor(($totalGeoTag * $orderVisitPercent) / 100)) {
                             $field_force->update([
-                                'canOrder' => true
+                                'canOrderVisit' => true,
+                                'isCapable' => false,
+                                'canConfirmDelivery' => false
                             ]);
-                            if ($total_delivery_by_spo >= floor(($total_order_by_spo * $deliveryConfirmPercent) / 100)) {
-                                $field_force->update([
-                                    'isCapable' => true,
-                                    'canConfirmDelivery' => true,
-                                ]);
+
+                            if ($field_force->order_deliveries) {
+                                $order_deliveries = $field_force->order_deliveries;
+
+                                foreach ($order_deliveries as $order_delivery) {
+                                    if (!empty($order_delivery->OrderNo) && !empty($order_delivery->OrderDate)) {
+                                        $total_order_by_spo++;
+                                    }
+                                    if (!empty($order_delivery->InvoiceNo) && !empty($order_delivery->InvoiceDate)) {
+                                        $total_delivery_by_spo++;
+                                    }
+                                }
+
+                                if ($total_delivery_by_spo >= floor(($total_order_by_spo * $deliveryConfirmPercent) / 100)) {
+                                    $field_force->update([
+                                        'isCapable' => true,
+                                        'canGeotag' => true,
+                                        'canOrderVisit' => true,
+                                        'canConfirmDelivery' => true
+                                    ]);
+                                } else {
+                                    $field_force->update([
+                                        'isCapable' => false,
+                                        'canConfirmDelivery' => false,
+                                    ]);
+                                }
                             }
                             else {
                                 $field_force->update([
                                     'isCapable' => false,
-                                    'canConfirmDelivery' => false
+                                    'canConfirmDelivery' => false,
                                 ]);
                             }
-                        }
-                        else {
+                        } else {
                             $field_force->update([
                                 'isCapable' => false,
-                                'canOrder' => false
+                                'canOrderVisit' => false,
+                                'canConfirmDelivery' => false
                             ]);
                         }
+
                     }
                     else {
                         $field_force->update([
                             'isCapable' => false,
-                            'canOrder' => false
+                            'canOrderVisit' => false,
+                            'canConfirmDelivery' => false
                         ]);
                     }
                 }
                 else {
                     $field_force->update([
                         'isCapable' => false,
-                        'canGeotag' => false
+                        'canGeotag' => false,
+                        'canOrderVisit' => false,
+                        'canConfirmDelivery' => false
                     ]);
                 }
             }
             else {
                 $field_force->update([
                     'isCapable' => false,
-                    'canGeotag' => false
+                    'canGeotag' => false,
+                    'canOrderVisit' => false,
+                    'canConfirmDelivery' => false
                 ]);
             }
         }

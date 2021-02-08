@@ -20,6 +20,9 @@
                                     <th>S/L</th>
                                     <th>Region</th>
                                     <th>Occupied Field Force</th>
+                                    <th>Can Geo Tag</th>
+                                    <th>Can Order Visit</th>
+                                    <th>Can Confirm Delivery</th>
                                     <th>Capable Field Force</th>
                                     <th>Incapable Field Force</th>
 
@@ -31,6 +34,9 @@
                                         <td>{{ $loop->index+1 }}</td>
                                         <td>{{ $region->RSMArea }}</td>
                                         <td>{{ $region->total }}</td>
+                                        <td>{{ $region->can_geotag }}</td>
+                                        <td>{{ $region->can_order_visit }}</td>
+                                        <td>{{ $region->can_confirm_delivery }}</td>
                                         <td>{{ $region->capable }}</td>
                                         <td>{{ $region->incapable }}</td>
                                     </tr>

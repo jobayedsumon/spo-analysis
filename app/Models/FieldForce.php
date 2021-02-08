@@ -15,9 +15,9 @@ class FieldForce extends Model
         return $this->hasMany(OrderDelivery::class, 'SPOCode', 'Code');
     }
 
-    public function retail_visit()
+    public function retail_visits()
     {
-        return $this->hasOne(RetailVisit::class, 'FieldForce', 'Code');
+        return $this->hasMany(RetailVisit::class, 'FieldForce', 'Code');
     }
 
     public function geotags()

@@ -31,8 +31,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(Charts $charts)
     {
         //
-       $user = User::where('role_id', 1)->first();
-       Auth::loginUsingId($user->id);
 
 //        $charts->register([
 //            FieldForceChart::class,

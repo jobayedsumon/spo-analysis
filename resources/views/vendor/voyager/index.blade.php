@@ -27,12 +27,12 @@
 
 
                   // chart object
-                  $Chart = new FusionCharts("angulargauge", "angulargauge-1" , "400", "200", "angulargauge-container", "json", $gaugeData);
+                  $Chart = new FusionCharts("angulargauge", "angulargauge-1" , "100%", "200", "angulargauge-container", "json", $gaugeData);
 
                   // Render the chart
                   $Chart->render();
 
-                    $Chart2 = new FusionCharts("angulargauge", "angulargauge-2" , "400", "200", "angulargauge-container2", "json", $gaugeData2);
+                    $Chart2 = new FusionCharts("angulargauge", "angulargauge-2" , "100%", "200", "angulargauge-container2", "json", $gaugeData2);
 
                   // Render the chart
                   $Chart2->render();
@@ -78,13 +78,55 @@
             <div class="row">
 
 
-                <div class="col-md-6">
-                    <div id="piechart" style="width: 600px; height: 200px;"></div>
+                <div class="col-md-3">
+                    <div id="piechart" style="width: 100%; height: 200px;"></div>
 
+                </div>
+                <div class="col-md-2">
+                    <h5 style="font-size: 10px">Individual Breakdown of Evaluation <br>(Out of {{ $data['spoEvaluation']->total }} SPOs)</h5>
+
+                    <table class="table table-striped table-hovered" style="font-size: 10px">
+                        <thead>
+                        <tr>
+                            <th>
+                                Can Geotag
+                            </th>
+                            <th>
+                                {{ $data['spoEvaluation']->can_geotag }}
+                            </th>
+                            <th>
+                                {{ ceil($data['spoEvaluation']->can_geotag * 100 / $data['spoEvaluation']->total) }}%
+                            </th>
+                        </tr>
+                        <tr>
+                            <th>
+                                Can Visit / Order
+                            </th>
+                            <th>
+                                {{ $data['spoEvaluation']->can_order_visit }}
+                            </th>
+                            <th>
+                                {{ ceil($data['spoEvaluation']->can_order_visit * 100 / $data['spoEvaluation']->total) }}%
+                            </th>
+                        </tr>
+                        <tr>
+                            <th>
+                                Can Confirm Delivery
+                            </th>
+                            <th>
+                                {{ $data['spoEvaluation']->can_confirm_delivery }}
+                            </th>
+                            <th>
+                                {{ ceil($data['spoEvaluation']->can_confirm_delivery * 100 / $data['spoEvaluation']->total) }}%
+                            </th>
+                        </tr>
+
+                        </thead>
+                    </table>
                 </div>
                 <div class="col-md-6">
 
-                    <div id="barchart" style="width: 600px; height: 300px;"></div>
+                    <div id="barchart" style="width: 100%; height: 300px;"></div>
                 </div>
 
 
@@ -179,6 +221,16 @@
             };
 
             var regionChart = new google.visualization.BarChart(document.getElementById('piechart'));
+
+            function selectHandler() {
+                var selectedItem = regionChart.getSelection()[0];
+                if (selectedItem) {
+                    var topping = regionData.getValue(selectedItem.row, 1);
+                    alert('The user selected ' + topping);
+                }
+            }
+            google.visualization.events.addListener(regionChart, 'select', selectHandler);
+
             regionChart.draw(regionData, regionOptions);
 
             var areaChart = new google.visualization.BarChart(document.getElementById('barchart'));
