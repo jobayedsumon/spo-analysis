@@ -31,6 +31,16 @@ class OrderDeliveryController extends Controller
         return view('region-wise-field-forces', compact('regions'));
     }
 
+    public function region_field_force($region)
+    {
+        $field_forces = DB::table('field_forces')
+            ->where('Name', '!=', 'VACANT')
+            ->where('RSMArea', $region)
+            ->get();
+
+        return view('region-field-force', compact('field_forces', 'region'));
+    }
+
     public function area_wise_field_forces()
     {
         $areas = DB::table('field_forces')
@@ -46,6 +56,16 @@ class OrderDeliveryController extends Controller
             ->get();
 
         return view('area-wise-field-forces', compact('areas'));
+    }
+
+    public function area_field_force($area)
+    {
+        $field_forces = DB::table('field_forces')
+            ->where('Name', '!=', 'VACANT')
+            ->where('ASMArea', $area)
+            ->get();
+
+        return view('area-field-force', compact('field_forces', 'area'));
     }
 
     public function dashboard()
@@ -161,6 +181,24 @@ class OrderDeliveryController extends Controller
             ->selectRaw("count(case when canConfirmDelivery = 1 then 1 end) as can_confirm_delivery")
             ->first();
 
+        $data['orderDelivery'] = DB::table('order_deliveries')
+            ->whereNotNull('OrderNo')
+            ->whereNotNull('OrderDate')
+            ->select('OrderDate')
+//            ->selectRaw('count(*) as total_order')
+//            ->selectRaw("count(case when InvoiceNo = '' and InvoiceDate = '' then 1 end) as total_undelivered")
+            ->selectRaw("count(case when OrderDate = InvoiceDate then 1 end) as first_day_delivery")
+            ->selectRaw("count(case when OrderDate+1 = InvoiceDate then 1 end) as second_day_delivery")
+            ->selectRaw("count(case when OrderDate+2 = InvoiceDate then 1 end) as third_day_delivery")
+            ->selectRaw("count(case when OrderDate+3 = InvoiceDate then 1 end) as fourth_day_delivery")
+            ->selectRaw("count(case when OrderDate+4 = InvoiceDate then 1 end) as fifth_day_delivery")
+            ->selectRaw("count(case when OrderDate+5 = InvoiceDate then 1 end) as sixth_day_delivery")
+            ->selectRaw("count(case when OrderDate+6 = InvoiceDate then 1 end) as seventh_day_delivery")
+            ->groupBy('OrderDate')
+            ->get();
+
+
+
         return view('voyager::index', compact('gaugeData', 'gaugeData2', 'data'));
     }
 
@@ -270,6 +308,45 @@ class OrderDeliveryController extends Controller
         }
 
         return redirect(route('dashboard'));
+    }
+
+    public function region_capability($region, $capability)
+    {
+        if ($capability == 'capable') {
+            $capabilityValue = 1;
+        } else if ($capability == 'incapable'){
+            $capabilityValue = 0;
+        }
+        $field_forces = DB::table('field_forces')
+            ->where('Name', '!=', 'VACANT')
+            ->where('RSMArea', $region)
+            ->where('isCapable', $capabilityValue)
+            ->get();
+
+        return view('modal-with-data', compact('field_forces'))->render();
+
+    }
+
+    public function area_capability($area, $capability)
+    {
+        if ($capability == 'capable') {
+            $capabilityValue = 1;
+        } else if ($capability == 'incapable'){
+            $capabilityValue = 0;
+        }
+        $field_forces = DB::table('field_forces')
+            ->where('Name', '!=', 'VACANT')
+            ->where('ASMArea', $area)
+            ->where('isCapable', $capabilityValue)
+            ->get();
+
+        return view('modal-with-data', compact('field_forces'))->render();
+
+    }
+
+    public function order_delivery()
+    {
+
     }
 
 }

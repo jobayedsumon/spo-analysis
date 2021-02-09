@@ -89,7 +89,7 @@
                         <thead>
                         <tr>
                             <th>
-                                Can Geotag
+                                Can Geotag at least {{ \TCG\Voyager\Facades\Voyager::setting('admin.geo-tag-percent') }}%
                             </th>
                             <th>
                                 {{ $data['spoEvaluation']->can_geotag }}
@@ -100,7 +100,7 @@
                         </tr>
                         <tr>
                             <th>
-                                Can Visit / Order
+                                Can Visit / Order at least {{ \TCG\Voyager\Facades\Voyager::setting('admin.order-visit-percent') }}%
                             </th>
                             <th>
                                 {{ $data['spoEvaluation']->can_order_visit }}
@@ -111,7 +111,7 @@
                         </tr>
                         <tr>
                             <th>
-                                Can Confirm Delivery
+                                Can Confirm Delivery at least {{ \TCG\Voyager\Facades\Voyager::setting('admin.delivery-confirm-percent') }}%
                             </th>
                             <th>
                                 {{ $data['spoEvaluation']->can_confirm_delivery }}
@@ -144,16 +144,18 @@
         </div>
 
 
+        <div id="container" style="width:100%; height:400px;"></div>
 
 
 
+        <!-- Modal -->
+        <div class="modal fade" id="spoModal" tabindex="-1" role="dialog" aria-labelledby="spoModal">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content" id="dynamic-content">
 
-
-
-
-
-
-
+                </div>
+            </div>
+        </div>
 
 
 
@@ -170,8 +172,17 @@
 @section('javascript')
 
     <script type="text/javascript">
+
+        var orderDelivery =  <?php echo json_encode($data['orderDelivery']) ?>;
+
         google.charts.load('current', {'packages':['corechart']});
         google.charts.setOnLoadCallback(drawChart);
+
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
 
         function drawChart() {
 
@@ -206,8 +217,6 @@
                 },
                 fontSize: 6,
                 titleFontSize: 8,
-
-
             };
 
             var areaOptions = {
@@ -215,25 +224,55 @@
                 is3D: true,
                 fontSize: 8,
                 titleFontSize: 8,
-
-
-
             };
 
             var regionChart = new google.visualization.BarChart(document.getElementById('piechart'));
 
-            function selectHandler() {
+            function selectHandlerRegion() {
                 var selectedItem = regionChart.getSelection()[0];
+
                 if (selectedItem) {
-                    var topping = regionData.getValue(selectedItem.row, 1);
-                    alert('The user selected ' + topping);
+                    var region = regionData.getValue(selectedItem.row, 0);
+                    capability = selectedItem.column == 1 ? 'capable' : 'incapable';
+
+                    $.ajax({
+                        type:'GET',
+                        dataType: 'html',
+                        url:'/field-forces/region/'+region+'/capability/'+capability,
+                        success:function(data){
+                            $('#dynamic-content').html('');
+                            $('#dynamic-content').html(data);
+                            $('#spoModal').modal('show');
+
+                        }
+                    });
                 }
             }
-            google.visualization.events.addListener(regionChart, 'select', selectHandler);
-
+            google.visualization.events.addListener(regionChart, 'select', selectHandlerRegion);
             regionChart.draw(regionData, regionOptions);
 
             var areaChart = new google.visualization.BarChart(document.getElementById('barchart'));
+            function selectHandlerArea() {
+                var selectedItem = areaChart.getSelection()[0];
+
+                if (selectedItem) {
+                    var area = areaData.getValue(selectedItem.row, 0);
+                    capability = selectedItem.column == 1 ? 'capable' : 'incapable';
+
+                    $.ajax({
+                        type:'GET',
+                        dataType: 'html',
+                        url:'/field-forces/area/'+area+'/capability/'+capability,
+                        success:function(data){
+                            $('#dynamic-content').html('');
+                            $('#dynamic-content').html(data);
+                            $('#spoModal').modal('show');
+
+                        }
+                    });
+                }
+            }
+            google.visualization.events.addListener(areaChart, 'select', selectHandlerArea);
             areaChart.draw(areaData, areaOptions);
 
 

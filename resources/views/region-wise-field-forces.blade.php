@@ -25,7 +25,7 @@
                                     <th>Can Confirm Delivery</th>
                                     <th>Capable Field Force</th>
                                     <th>Incapable Field Force</th>
-
+                                    <th>View Details</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -39,6 +39,7 @@
                                         <td>{{ $region->can_confirm_delivery }}</td>
                                         <td>{{ $region->capable }}</td>
                                         <td>{{ $region->incapable }}</td>
+                                        <td><a href="{{ route('region-field-force', $region->RSMArea) }}">View Details</a></td>
                                     </tr>
                                 @empty
                                 @endforelse

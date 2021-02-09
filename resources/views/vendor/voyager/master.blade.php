@@ -45,6 +45,8 @@
 
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/dt/dt-1.10.23/b-1.6.5/datatables.min.css"/>
 
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+
     <!-- FusionCharts Library -->
     <script type="text/javascript" src="//cdn.fusioncharts.com/fusioncharts/latest/fusioncharts.js"></script>
     <script type="text/javascript" src="//cdn.fusioncharts.com/fusioncharts/latest/themes/fusioncharts.theme.fusion.js"></script>

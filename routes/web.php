@@ -52,8 +52,15 @@ Route::group(['prefix' => 'admin'], function () {
 
 Route::get('field-forces/region-wise-field-forces', '\App\Http\Controllers\OrderDeliveryController@region_wise_field_forces')
     ->name('region-wise-field-forces');
+Route::get('field-forces/region/{region}/capability/{capability}', '\App\Http\Controllers\OrderDeliveryController@region_capability');
+Route::get('field-forces/region/{region}', '\App\Http\Controllers\OrderDeliveryController@region_field_force')->name('region-field-force');
+
+
 Route::get('field-forces/area-wise-field-forces', '\App\Http\Controllers\OrderDeliveryController@area_wise_field_forces')
     ->name('area-wise-field-forces');
+Route::get('field-forces/area/{area}/capability/{capability}', '\App\Http\Controllers\OrderDeliveryController@area_capability');
+Route::get('field-forces/area/{area}', '\App\Http\Controllers\OrderDeliveryController@area_field_force')->name('area-field-force');
 
+Route::get('order-delivery', '\App\Http\Controllers\OrderDeliveryController@order_delivery');
 
 

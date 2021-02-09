@@ -25,7 +25,7 @@
                                     <th>Can Confirm Delivery</th>
                                     <th>Capable Field Force</th>
                                     <th>Incapable Field Force</th>
-
+                                    <th>View Details</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -39,7 +39,7 @@
                                             <td>{{ $area->can_confirm_delivery }}</td>
                                             <td>{{ $area->capable }}</td>
                                             <td>{{ $area->incapable }}</td>
-
+                                            <td><a href="{{ route('area-field-force', $area->ASMArea) }}">View Details</a></td>
 
                                         </tr>
                                     @empty
